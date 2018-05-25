@@ -1,9 +1,15 @@
 ;; shadow-cljs configuration
-{:source-paths
- ["src"]
+{:deps true
+ :source-paths  ["src"]
+ :builds {:dev {:output-dir "resources/public/js"
+                :asset-path "/public/js"
+                :target     :browser
+                :modules    {:main {:entries [ether.estuary.client]}}
+                :devtools {:preloads [devtools.preload]
+                           :after-load ether.estuary.core/reload!
+                           :watch-dir "public"}}
 
- :dependencies
- []
-
- :builds
- {}}
+          :app {:output-dir "target/"
+                :asset-path "."
+                :target     :browser
+                :modules    {:main {:entries [ether.estuary.client]}}}}}
