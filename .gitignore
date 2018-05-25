@@ -1,3 +1,6 @@
-.cpcache/
+node_modules
+target
+.cpcache
 .nrepl-port
-target/
+resources/public/js
+.DS_Store
