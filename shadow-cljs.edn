@@ -6,7 +6,7 @@
                 :target     :browser
                 :modules    {:main {:entries [ether.estuary.client]}}
                 :devtools {:preloads [devtools.preload]
-                           :after-load ether.estuary.core/reload!
+                           :after-load ether.estuary.client/reload!
                            :watch-dir "public"}}
 
           :app {:output-dir "target/"

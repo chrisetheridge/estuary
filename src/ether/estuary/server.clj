@@ -14,7 +14,8 @@
 
 (defn render-index [request template]
   (str/replace template #"\#data\#"
-               (transit/write-transit-str {:config/ws-uri "/ws"})))
+               (transit/write-transit-str {:estuary/ws-uri  "/ws"
+                                           :estuary/clients []})))
 
 (defn index [request]
   {:status  200
