@@ -1,7 +1,7 @@
 (ns ether.estuary.engine
   (:require [clojure.core.async :as async]
-            [ether.estuary.util :as util]
-            [ether.estuary.logging :as logging]))
+            [ether.estuary.logging :as logging]
+            [ether.estuary.util :as util]))
 
 ;;; Listeners
 
@@ -24,18 +24,30 @@
 (defonce *system (atom nil))
 
 (defn stop-system! []
-  (swap! *system merge {:system/engine nil
+  (swap! *system merge {:system/engine   nil
                         :system/running? false}))
 
 (defn tag-event [event]
   (assoc event :event/client-ts (util/inst-ms)))
+
+(defn- -safe-action [*engine state the-action]
+  (try
+    (let [after-state (action state the-action)]
+      (swap! *engine update :engine/confirmed-actions the-action)
+      after-state)
+    (catch #?(:clj Exception :cljs js/Error) e
+      (do
+        (logging/error "Error handling action" {:action action :error e})
+        (swap! *engine update :engine/failed-actions
+               conj (assoc the-action :action/error e))
+        state))))
 
 ;; TODO: (chrise) error atom events
 (defn- -handle-action! [*engine the-action]
   (logging/info "Handling action" action)
   (let [engine                           @*engine
         {:engine/keys [listeners state]} engine
-        after                            (action state the-action)]
+        after                            (-safe-action *engine state the-action)]
     (swap! *engine update :engine/state
            (fn [state]
              (if (empty? after)
@@ -50,19 +62,19 @@
       (cb after the-action))))
 
 (defn base-engine [state channel]
-  {:engine/state            state
-   :engine/listeners        []
-   :engine/action-channel   channel
-   :engine/meta             {:meta/start          (util/inst)
-                             :meta/starting-state state}})
+  {:engine/state          state
+   :engine/listeners      []
+   :engine/action-channel channel
+   :engine/meta           {:meta/start          (util/inst)
+                           :meta/starting-state state}})
 
 (defn new-engine! [state channel]
   (let [*engine (atom (base-engine state channel))
-        loop      (async/go
-                    (loop [action (async/<! channel)]
-                      (when action
-                        (-handle-action! *engine action))
-                      (recur (async/<! channel))))]
+        loop    (async/go
+                  (loop [action (async/<! channel)]
+                    (when action
+                      (-handle-action! *engine action))
+                    (recur (async/<! channel))))]
     (swap! *engine assoc :engine/loop loop)
     *engine))
 
