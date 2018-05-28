@@ -42,13 +42,12 @@
                conj (assoc the-action :action/error e))
         state))))
 
-;; TODO: (chrise) error atom events
 (defn- -handle-action! [*engine the-action]
   (logging/info "Handling action" action)
   (let [engine                           @*engine
         {:engine/keys [listeners state]} engine
         after                            (-safe-action *engine state the-action)]
-    (swap! *engine update :engine/state
+    (swap! *engine update :engine/db
            (fn [state]
              (if (empty? after)
                (do
@@ -63,6 +62,7 @@
 
 (defn base-engine [state channel]
   {:engine/state          state
+   :engine/phase          [:engine.phase/none :engine.phase/started]
    :engine/listeners      []
    :engine/action-channel channel
    :engine/meta           {:meta/start          (util/inst)
@@ -85,3 +85,9 @@
 (defn start-system! [initial-state]
   (swap! *system merge {:system/engine   (start-engine initial-state)
                         :system/running? true}))
+
+(defn stop-engine! [*engine]
+  (swap! *engine assoc  :engine/phase [:engine.phase/running :engine.phase/stopped])
+  (swap! *engine update :engine/action-channel async/close!)
+  (swap! *engine update :engine/meta assoc :meta/stop (util/inst))
+  (swap! *engine dissoc :engine/loop))
