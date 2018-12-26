@@ -1,8 +1,8 @@
 (ns ether.estuary.util.transit
   (:require [cognitect.transit :as t]))
 
-(defn read-transit-str [s]
+(defn read-str [s]
   (t/read (t/reader :json) s))
 
-(defn write-transit-str [o]
+(defn write-str [o]
   (t/write (t/writer :json) o))

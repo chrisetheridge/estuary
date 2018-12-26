@@ -29,3 +29,14 @@
 (defn react-key [comp-key]
   (str "ether_estuary_component/"
        (string/replace (str comp-key) #"\:" "")))
+
+(defn some-map
+  "Like clojure.core/hash-map or usual map ctor ({ kv pairs} ),
+  only keeps non-nil values."
+  [& kvs]
+  (assert (== 0 (mod (count kvs) 2))
+          "some-map requires even an number of arguments, like clojure.core/hash-map")
+  (reduce (fn [m [k v]]
+            (if (some? v) (assoc m k v) m))
+          {}
+          (partition 2 kvs)))

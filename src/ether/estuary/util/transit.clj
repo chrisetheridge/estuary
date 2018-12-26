@@ -5,7 +5,7 @@
 (defn read-transit [is]
   (t/read (t/reader is :json)))
 
-(defn read-transit-str [^String s]
+(defn read-str [^String s]
   (read-transit (ByteArrayInputStream. (.getBytes s "UTF-8"))))
 
 (defn write-transit [o os]
@@ -16,5 +16,5 @@
     (write-transit o os)
     (.toByteArray os)))
 
-(defn write-transit-str [o]
+(defn write-str [o]
   (String. (write-transit-bytes o) "UTF-8"))

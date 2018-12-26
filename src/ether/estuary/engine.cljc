@@ -43,11 +43,11 @@
         state))))
 
 (defn- -handle-action! [*engine the-action]
-  (logging/info "Handling action" action)
+  (logging/info "Handling action" the-action)
   (let [engine                           @*engine
         {:engine/keys [listeners state]} engine
         after                            (-safe-action *engine state the-action)]
-    (swap! *engine update :engine/db
+    (swap! *engine update :engine/state
            (fn [state]
              (if (empty? after)
                (do

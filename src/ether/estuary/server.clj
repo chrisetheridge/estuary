@@ -5,6 +5,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [ether.estuary.logging :as logging]
+   [ether.estuary.ws :as estuary.ws]
    [compojure.core :as cj]
    [compojure.route :as route]
    [immutant.web :as web]
@@ -14,8 +15,8 @@
 
 (defn render-index [request template]
   (str/replace template #"\#data\#"
-               (transit/write-transit-str {:estuary/ws-uri  "/ws"
-                                           :estuary/clients []})))
+               (transit/write-str {:estuary/ws-uri  "/ws"
+                                   :estuary/clients []})))
 
 (defn index [request]
   {:status  200
@@ -52,6 +53,7 @@
 (def web-app
   (-> (cj/routes
        (cj/GET "/" request (index request))
+       estuary.ws/routes
        (route/files "/public" {:root "resources/public"}))
       middleware.params/wrap-params
       wrap-with-env
@@ -91,8 +93,6 @@
   (do
     (require '[clojure.tools.namespace.repl])
     (clojure.tools.namespace.repl/refresh)
-    (restart! 8080))
-  (stop!)
-  (start! 8080)
+    (restart! 7771))
 
   )

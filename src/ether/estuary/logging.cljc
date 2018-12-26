@@ -28,9 +28,9 @@
 
 (defmacro log [level & args]
   (when (should-log? (cljc-ns &env) level)
-    (if (:ns &env) ;; cljs uses &env var
-      `(js/console.log ~(log-key &env level) ~@args)
-      `(println ~(log-key &env level) ~@args))))
+    (if (:ns &env) ;; cljs uses :ns &env var
+      `(js/console.log ~(log-key &env level) (pr-str ~@args))
+      `(println ~(log-key &env level) (pr-str ~@args)))))
 
 (defmacro info [& args]
   `(ether.estuary.logging/log :info ~@args))
