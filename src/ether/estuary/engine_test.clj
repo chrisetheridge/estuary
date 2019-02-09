@@ -1,15 +1,16 @@
 (ns ether.estuary.engine-test
-  (:require [ether.estuary.engine :as engine]
-            [clojure.test :as test :refer [is deftest]]
-            [clojure.core.async :as async]
-            [ether.estuary.logging :as logging]))
+  (:require
+   [ether.estuary.engine :as engine]
+   [clojure.test :as test :refer [is deftest]]
+   [clojure.core.async :as async]
+   [ether.lib.logging :as logging]))
 
 (deftest basic-engine
-  (let [channel    (async/chan 25)
-        state      {:x (take (rand-int 10)
-                             (shuffle (range 10000)))}
+  (let [channel     (async/chan 25)
+        state       {:x (take (rand-int 10)
+                              (shuffle (range 10000)))}
         *new-engine (engine/new-engine! state channel)
-        engine     (deref *new-engine)]
+        engine      (deref *new-engine)]
     (logging/info "Testing base engine state" {:test/state state})
     (is (= (:engine/state engine) state))
     (is (= (:engine/listeners engine) []))

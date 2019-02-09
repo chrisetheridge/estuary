@@ -7,7 +7,7 @@
    [refactor-nrepl.middleware :as refactor]
    [shadow.cljs.devtools.api :as shadow.api]
    [shadow.cljs.devtools.server :as shadow.server]
-   [ether.estuary.logging :as logging]))
+   [ether.lib.logging :as logging]))
 
 (defn clean-up! [cljs-build]
   (logging/debug "Starting cljs clean-up!" {:build cljs-build})

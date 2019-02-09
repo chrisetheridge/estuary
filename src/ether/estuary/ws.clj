@@ -1,17 +1,9 @@
 (ns ether.estuary.ws
   (:require
-   [ether.estuary.db :as db]
-   [clojure.java.io :as io]
-   [clojure.string :as str]
-   [ether.estuary.logging :as logging]
-   [ether.estuary.util :as estuary.util]
+   [ether.lib.logging :as logging]
+   [ether.estuary.core :as estuary.core]
    [compojure.core :as cj]
-   [compojure.route :as route]
-   [immutant.web :as web]
-   [immutant.web.async :as web.async]
-   [ether.estuary.util.transit :as transit]
-   [ring.middleware.params :as middleware.params]
-   [datomic.api :as d]))
+   [immutant.web.async :as web.async]))
 
 (defonce ^:dynamic *clients (atom nil))
 (defonce *messages (atom []))
@@ -26,10 +18,10 @@
   (swap! *messages conj message))
 
 (defn- on-open-impl [channel handshake]
-  (let [uuid       (estuary.util/new-uuid)
+  (let [uuid       (estuary.core/new-uuid)
         new-client {::uuid    uuid
                     ::channel channel
-                    ::meta    {:start        (estuary.util/inst)
+                    ::meta    {:start        (estuary.core/inst)
                                :ws-handshake handshake}}]
     (logging/info "New client" new-client)
     (swap! *clients conj new-client)))

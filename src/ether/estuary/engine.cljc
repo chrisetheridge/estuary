@@ -1,7 +1,11 @@
 (ns ether.estuary.engine
-  (:require [clojure.core.async :as async]
-            [ether.estuary.logging :as logging]
-            [ether.estuary.util :as util]))
+  (:require
+   [clojure.core.async :as async]
+   [ether.lib.logging :as logging]
+   [ether.estuary.core :as estuary.core]))
+
+(defonce *system (atom nil))
+(defonce *main-engine* (atom nil))
 
 ;;; Listeners
 
@@ -15,20 +19,18 @@
   (fn [state action]
     (:action/key action)))
 
-(defn perform-action! [*engine action]
-  (when-let [channel (:engine/action-channel @*engine)]
+(defn dispatch! [action]
+  (when-let [channel (:engine/action-channel @*main-engine*)]
     (async/put! channel action)))
 
 ;;; Engine / system
-
-(defonce *system (atom nil))
 
 (defn stop-system! []
   (swap! *system merge {:system/engine   nil
                         :system/running? false}))
 
 (defn tag-event [event]
-  (assoc event :event/client-ts (util/inst-ms)))
+  (assoc event :event/client-ts (estuary.core/inst-ms)))
 
 (defn- -safe-action [*engine state the-action]
   (try
@@ -57,7 +59,7 @@
                  (logging/info "After state" after)
                  after))))
     (doseq [[k cb] listeners]
-      (logging/info "Calling engine listener" (str k) {:action the-action})
+      (logging/info "Notifying listeners, key:" (str k) {:action the-action})
       (cb after the-action))))
 
 (defn base-engine [state channel]
@@ -65,7 +67,7 @@
    :engine/phase          [:engine.phase/none :engine.phase/started]
    :engine/listeners      []
    :engine/action-channel channel
-   :engine/meta           {:meta/start          (util/inst)
+   :engine/meta           {:meta/start          (estuary.core/inst)
                            :meta/starting-state state}})
 
 (defn new-engine! [state channel]
@@ -76,6 +78,7 @@
                       (-handle-action! *engine action))
                     (recur (async/<! channel))))]
     (swap! *engine assoc :engine/loop loop)
+    (reset! *main-engine* *engine)
     *engine))
 
 (defn start-engine [state]
@@ -89,5 +92,5 @@
 (defn stop-engine! [*engine]
   (swap! *engine assoc  :engine/phase [:engine.phase/running :engine.phase/stopped])
   (swap! *engine update :engine/action-channel async/close!)
-  (swap! *engine update :engine/meta assoc :meta/stop (util/inst))
+  (swap! *engine update :engine/meta assoc :meta/stop (estuary.core/inst))
   (swap! *engine dissoc :engine/loop))

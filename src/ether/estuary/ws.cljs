@@ -1,8 +1,8 @@
 (ns ether.estuary.ws
   (:require
-   [ether.estuary.logging :as logging]
-   [ether.estuary.util.transit :as estuary.transit]
-   [ether.estuary.util :as estuary.util]
+   [ether.lib.logging :as logging]
+   [ether.lib.transit :as estuary.transit]
+   [ether.estuary.core :as estuary.core]
    [ether.estuary.engine :as estuary.engine]))
 
 (defonce ^:dynamic *clients (atom []))
@@ -14,15 +14,14 @@
   (let [{:keys [state]} @*engine
         url             (parse-url state lng lat)
         socket          (js/Websocket. url)
-        client-uuid     (estuary.util/new-uuid)]
+        client-uuid     (estuary.core/new-uuid)]
     (logging/info "Connecting new WS client" lng lat)
     (set! (.-onmessage socket)
           (fn [e]
             (let [data (estuary.transit/read-str (aget e "data"))]
-              (->> (estuary.util/some-map
-                    :action/key (:action data)
-                    :action/data (dissoc data :action))
-                   (estuary.engine/perform-action! *engine)))))
+              (estuary.engine/dispatch!
+               {:action/key  (:action data)
+                :action/data (dissoc data :action)}))))
     (set! (.-onerror socket)
           (fn [e]
             (logging/error "WS client error" {:ex e})))
@@ -33,5 +32,5 @@
     (set! (.-onopen socket)
           (fn [d]
             (logging/info "WS client open" d)
-            (swap! *clients conj {:socket   socket
-                                  :uuid     client-uuid})))))
+            (swap! *clients conj {:socket socket
+                                  :uuid   client-uuid})))))

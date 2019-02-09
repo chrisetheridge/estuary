@@ -4,14 +4,13 @@
    [ether.estuary.db :as db]
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [ether.estuary.logging :as logging]
+   [ether.lib.logging :as logging]
    [ether.estuary.ws :as estuary.ws]
    [compojure.core :as cj]
    [compojure.route :as route]
    [immutant.web :as web]
-   [ether.estuary.util.transit :as transit]
-   [ring.middleware.params :as middleware.params]
-   [datomic.api :as d]))
+   [ether.lib.transit :as transit]
+   [ring.middleware.params :as middleware.params]))
 
 (defn render-index [request template]
   (str/replace template #"\#data\#"
@@ -52,7 +51,7 @@
 
 (def web-app
   (-> (cj/routes
-       (cj/GET "/" request (index request))
+       (cj/GET "/e" request (index request))
        estuary.ws/routes
        (route/files "/public" {:root "resources/public"}))
       middleware.params/wrap-params

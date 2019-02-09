@@ -1,6 +1,7 @@
 (ns ether.estuary.db
-  (:require [datomic.api :as d]
-            [ether.estuary.core :as core]))
+  (:require
+   [datomic.api :as d]
+   [ether.estuary.core :as core]))
 
 (defn conn [] (d/connect core/DB-URI))
 
@@ -11,10 +12,10 @@
 (defn start-system! []
   (try
     (let [conn (d/connect core/DB-URI)]
-      (reset! *system {:datomic/conn conn
-                       :system/started (java.util.Date.)
+      (reset! *system {:datomic/conn    conn
+                       :system/started  (java.util.Date.)
                        :system/running? true
-                       :system/name :nearby.system/datomic}))
+                       :system/name     :nearby.system/datomic}))
     (catch Exception e
       (d/create-database core/DB-URI)
       (start-system!))))
