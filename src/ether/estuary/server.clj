@@ -1,21 +1,19 @@
 (ns ether.estuary.server
-  (:gen-class)
-  (:require
-   [ether.estuary.db :as db]
-   [clojure.java.io :as io]
-   [clojure.string :as str]
-   [ether.lib.logging :as logging]
-   [ether.estuary.ws :as estuary.ws]
-   [compojure.core :as cj]
-   [compojure.route :as route]
-   [immutant.web :as web]
-   [ether.lib.transit :as transit]
-   [ring.middleware.params :as middleware.params]))
+  (:require [mount.core :as mount]
+            [clojure.string :as string]
+            [ether.lib.logging :as logging]
+            [ether.lib.transit :as transit]
+            [clojure.java.io :as io]
+            [compojure.core :as compojure]
+            [compojure.route :as route]
+            [ring.middleware.params :as middleware.params]
+            [org.httpkit.server :as server]
+            [ether.estuary.config :as config]))
 
-(defn render-index [request template]
-  (str/replace template #"\#data\#"
-               (transit/write-str {:estuary/ws-uri  "/ws"
-                                   :estuary/clients []})))
+(defn render-index [_request template]
+  (string/replace template #"\#data\#"
+                  (transit/write-str {:estuary/ws-uri  "/ws"
+                                      :estuary/clients []})))
 
 (defn index [request]
   {:status  200
@@ -24,21 +22,11 @@
                  (slurp)
                  (render-index request))})
 
-(defn wrap-with-env [handler]
-  (let [db-env (db/start-system!)]
-    (fn
-      ([req]
-       (handler (assoc req :estuary/env db-env)))
-      ([request respond raise]
-       (handler (assoc request :estuary/env db-env)
-                #(respond %) raise)))))
-
 (defn log-request [request]
   (let [{:keys [request-method uri]} request]
     (when-not (re-find #"^/public/.*" uri)
-      (logging/info (str/upper-case (name request-method))
-                    "→"
-                    uri))))
+      (logging/debug (string/upper-case (name request-method))
+                     uri))))
 
 (defn wrap-with-logging [handler]
   (fn
@@ -50,48 +38,23 @@
      (handler req #(respond %) raise))))
 
 (def web-app
-  (-> (cj/routes
-       (cj/GET "/e" request (index request))
-       estuary.ws/routes
+  (-> (compojure/routes
+       (compojure/GET "/e" request (index request))
+       ;; estuary.ws/routes
        (route/files "/public" {:root "resources/public"}))
       middleware.params/wrap-params
-      wrap-with-env
+      ;; wrap-with-env
       wrap-with-logging))
 
-(defonce ^:dynamic *system (atom nil))
+(defn start-server [{:keys [web]}]
+  (let [port (or (:port web) 8080)]
+    (logging/info "Starting server on" port)
+    (server/run-server #'web-app {:port port})))
 
-(defn start-system! [port]
-  (if (:system/running? @*system)
-    (logging/info "Server already running")
-    (let [port (or port 8080)]
-      (logging/info "Starting server on" port)
-      (swap! *system merge {:system/web-process (web/run #'web-app {:port port})
-                            :system/running?    true}))))
+(defn stop-server [srv]
+  (logging/info "Server:" srv)
+  (server/server-stop! srv))
 
-(defn stop! []
-  (if-let [stop-args (:system/web-process @*system)]
-    (do
-      (logging/info "Shutting down server")
-      (web/stop stop-args)
-      (swap! *system merge {:system/web-process nil
-                            :system/running?    false} )
-      (logging/info "Server shut down"))
-    (logging/info "Server not running")))
-
-(defn restart! [web-port]
-  (logging/info "Restarting server")
-  (stop!)
-  (start-system! web-port)
-  (logging/info "Done"))
-
-(defn -main [& [web-port]]
-  (start-system! (Integer/parseInt web-port)))
-
-(comment
-
-  (do
-    (require '[clojure.tools.namespace.repl])
-    (clojure.tools.namespace.repl/refresh)
-    (restart! 7771))
-
-  )
+(mount/defstate server
+  :start (start-server config/config)
+  :stop (stop-server server))

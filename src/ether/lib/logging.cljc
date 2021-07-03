@@ -1,51 +1,74 @@
 (ns ether.lib.logging
-  (:require
-   [clojure.string :as string]))
+  (:require [taoensso.timbre :as timbre]
+            [clojure.string :as string]))
 
-(defn cljc-ns [env]
-  (or (some-> (:ns env)
-              :name)
-      (.getName *ns*)))
+(defn set-level! [level]
+  (timbre/set-level! level))
 
-(defn parse-ns [ns-str]
-  (prn :q? (re-find #"\.ui\." ns-str))
-  (if (re-find #"\.ui\." ns-str)
-    (->> (string/split ns-str #"\.")
-         (drop-while #(not= % "ui")))
-    ns-str))
+(defn merge-config! [config]
+  (timbre/merge-config! config))
 
-(defn log-key [env level]
-  (str
-   "[" (or (some-> (cljc-ns env)
-                   str
-                   (parse-ns))
-           "?ns")
-   "] "
-   (string/upper-case (name level))))
+#?(:cljs
+   (defn console-set-level! [level-str]
+     (timbre/set-level! (keyword level-str))))
 
-(def *log-levels (atom {:root :info}))
+(def LOGGING_DATE_FORMAT "yyyy-MM-dd HH:mm:ss.SSS")
 
-(defn should-log? [ns level]
-  (= level
-     (get @*log-levels ns :info)))
+(timbre/merge-config!
+ {:level     :info
+  :output-fn
+  (fn [{:keys [level
+               ?err
+               msg_
+               ?ns-str
+               ?file]}]
+    (string/join " "
+                 [#?(:clj (.format (java.text.SimpleDateFormat. LOGGING_DATE_FORMAT)
+                                   (java.util.Date.)))
+                  (string/upper-case (name level))
+                  (or ?ns-str ?file "?")
+                  "-"
+                  (force msg_)
+                  (when-let [err ?err]
+                    (str "\n" (timbre/stacktrace err nil)))]))
+  :appenders {}
+  #_{;; By default, Timbre has the following appender:
+              ;; :println (timbre/println-appender {:stream :auto})
 
-(defn set-level! [symb level]
-  (swap! *log-levels assoc (name symb) level))
+     #?@(:clj [;; This is needed for when cider-nrepl steals the default
+                        ;; *out* stream, leading to a loss of normal logging
+                        ;; when connecting through REPL.
+               :println-default-out (assoc (timbre/println-appender)
+                                           :fn
+                                           (fn [{:keys [output_]}]
+                                             (when-not (= *out* default-out)
+                                               (binding [*out* default-out]
+                                                 (println (force output_))))))])}})
 
-(defmacro log [level & args]
-  (when (should-log? (cljc-ns &env) level)
-    (if (:ns &env) ;; cljs uses :ns &env var
-      `(js/console.log ~(log-key &env level) (apply str ~@args))
-      `(println ~(log-key &env level) (apply str ~@args)))))
-
-(defmacro info [& args]
-  `(ether.lib.logging/log :info ~@args))
-
-(defmacro warn [& args]
-  `(ether.lib.logging/log :warn ~@args))
+(defmacro trace [& args]
+  `(timbre/trace ~@args))
 
 (defmacro debug [& args]
-  `(ether.lib.logging/log :debug ~@args))
+  `(timbre/debug ~@args))
+
+(defmacro info [& args]
+  `(timbre/info ~@args))
+
+(defmacro warn [& args]
+  `(timbre/warn ~@args))
 
 (defmacro error [& args]
-  `(ether.lib.logging/log :error ~@args))
+  `(timbre/error ~@args))
+
+(defmacro log [level & args]
+  `(case ~level
+     :trace (trace ~@args)
+     :debug (debug ~@args)
+     :info  (info ~@args)
+     :warn  (warn ~@args)
+     :error (error ~@args)))
+
+#?(:clj (Thread/setDefaultUncaughtExceptionHandler
+         (reify Thread$UncaughtExceptionHandler
+           (uncaughtException [_ _ t]
+             (error t)))))

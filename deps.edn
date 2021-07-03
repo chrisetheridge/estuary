@@ -1,27 +1,20 @@
-{:paths ["src"]
- :deps  {;; server
-         org.clojure/tools.logging  {:mvn/version "0.3.1"}
-         org.immutant/web           {:mvn/version "2.1.10"}
-         ring/ring-core             {:mvn/version "1.6.3"}
-         compojure                  {:mvn/version "1.6.0"}
-         com.datomic/datomic-free   {:mvn/version "0.9.5697"
-                                     :exclusions
-                                     [org.slf4j/slf4j-log4j12
-                                      org.slf4j/slf4j-nop]}
-         ;; client
-         rum                        {:mvn/version "0.11.2"}
-         cljsjs/react               {:mvn/version "16.2.0-3"}
-         com.cognitect/transit-clj  {:mvn/version "0.8.300"}
-         com.cognitect/transit-cljs {:mvn/version "0.8.243"}
-         ;; required for immutant web logging
-         io.undertow/undertow-core  {:mvn/version "1.4.22.Final"}
-         org.jboss.xnio/xnio-nio    {:mvn/version "3.3.8.Final"}}
-
- :aliases {:dev
-           {:extra-paths ["dev"]
-            :extra-deps  {org.clojure/tools.nrepl     {:mvn/version "0.2.12"}
-                          org.clojure/tools.namespace {:mvn/version "0.2.11"}
-                          cider/cider-nrepl           {:mvn/version "0.16.0"}
-                          thheller/shadow-cljs        {:mvn/version "2.1.25"}
-                          refactor-nrepl              {:mvn/version "2.3.1"}
-                          binaryage/devtools          {:mvn/version "0.9.9"}}}}}
+{:paths   ["src"]
+ :deps    {ring/ring-core             {:mvn/version "1.9.3"}
+           javax.servlet/servlet-api  {:mvn/version "2.5"}
+           compojure/compojure        {:mvn/version "1.6.2"}
+           com.datomic/datomic-free   {:mvn/version "0.9.5697"
+                                       :exclusions
+                                       [org.slf4j/slf4j-log4j12
+                                        org.slf4j/slf4j-nop]}
+           http-kit/http-kit          {:mvn/version "2.5.3"}
+           rum/rum                    {:mvn/version "0.12.6"}
+           com.cognitect/transit-clj  {:mvn/version "1.0.324"}
+           com.cognitect/transit-cljs {:mvn/version "0.8.269"}
+           com.taoensso/timbre        {:mvn/version "5.1.2"}
+           com.google.guava/guava     {:mvn/version "30.1-jre"}
+           mount/mount                {:mvn/version "0.1.16"}
+           org.clojure/tools.cli      {:mvn/version "1.0.206"}}
+ :aliases {:dev  {:extra-paths ["dev"]
+                  :extra-deps  {cider/cider-nrepl {:mvn/version "0.26.0"}
+                                nrepl/nrepl       {:mvn/version "0.8.3"}}}
+           :cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "2.14.5"}}}}}
